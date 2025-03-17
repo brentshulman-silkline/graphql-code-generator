@@ -182,12 +182,17 @@ impl VisitMut for GraphQLVisitor {
 
         // Add import after any "use client" directive, since it must come before any other expression
         let mut index = 0;
-        if let ModuleItem::Stmt(Stmt::Expr(ExprStmt { expr, .. })) = &module.body[0] {
-            if let Expr::Lit(Lit::Str(Str { value, .. })) = &**expr {
-                if atom!("use client") == *value {
-                    index = 1;
+        
+        for item in &module.body {
+            if let ModuleItem::Stmt(Stmt::Expr(ExprStmt { expr, .. })) = item {
+                if let Expr::Lit(Lit::Str(Str { value, .. })) = &**expr {
+                    if matches!(value.as_ref(), "use client" | "use server") {  
+                        index += 1;
+                        continue;
+                    }
                 }
             }
+            break; // Stop scanning once a non-directive statement is found
         }
 
         for operation_or_fragment_name in &self.graphql_operations_or_fragments_to_import {
